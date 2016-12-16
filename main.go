@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"realtime-batch-processing/postgresql"
 	"strconv"
 	"time"
 
@@ -13,9 +14,18 @@ const (
 	videoViewCountKey = "video_view"
 )
 
+type VideoViewCount struct {
+	VideoID   string
+	ViewCount int64
+	CreatedAt time.Time
+}
+
 func main() {
 	redis.InitRedis()
 	defer redis.CloseRedis()
+
+	postgresql.Init()
+	defer postgresql.CloseDB()
 
 	// Recounting all first
 	log.Println("Recounting trending video")
@@ -31,6 +41,7 @@ func main() {
 			updateVideoCount()
 			log.Println("Tick done")
 			log.Println("---")
+
 		}
 	}
 }
@@ -54,7 +65,7 @@ func recountingTrending() {
 		if pMin < 0 {
 			pMin += 60 * 24
 		}
-		updateVideoCountAtMin(strconv.Itoa(pMin), 1)
+		updateVideoCountAtMin(strconv.Itoa(pMin), now, 1, false)
 		count++
 	}
 }
@@ -69,11 +80,14 @@ func updateVideoCount() {
 	if lastSixHour < 0 {
 		lastSixHour += 60 * 24
 	}
-	updateVideoCountAtMin(strconv.Itoa(timer), 1)
-	updateVideoCountAtMin(strconv.Itoa(lastSixHour), -1)
+	last := now.Add(6 * 60 * time.Minute)
+
+	//TODO Better to scan previous time in first restart in order not to miss any event in redis
+	updateVideoCountAtMin(strconv.Itoa(timer), now, 1, true)
+	updateVideoCountAtMin(strconv.Itoa(lastSixHour), last, -1, false)
 }
 
-func updateVideoCountAtMin(min string, minus int) {
+func updateVideoCountAtMin(min string, rawTime time.Time, minus int, saveToPg bool) {
 	videoViewKey := videoViewCountKey + "_" + min
 
 	if res := redis.Redis.HGetAll(videoViewKey); res != nil {
@@ -83,11 +97,33 @@ func updateVideoCountAtMin(min string, minus int) {
 			return
 		}
 
+		//Update trending video
 		for key, val := range mapCounting {
 			count, _ := strconv.Atoi(val)
 			if res := redis.Redis.ZIncrBy(videoTrendingKey, float64(minus*count), key); res != nil {
 				if res.Err() != nil {
 					log.Println(err)
+				}
+			}
+		}
+
+		//Save video count
+		log.Println(saveToPg)
+		if saveToPg {
+			log.Println(mapCounting)
+			for videoId, count := range mapCounting {
+				viewCount, _ := strconv.Atoi(count)
+				// Get video if exists
+				videoViewCount := VideoViewCount{
+					VideoID:   videoId,
+					ViewCount: int64(viewCount),
+					CreatedAt: rawTime,
+				}
+
+				err := postgresql.Postgres.Save(&videoViewCount).Error
+				if err != nil {
+					log.Println(err)
+					return
 				}
 			}
 		}
