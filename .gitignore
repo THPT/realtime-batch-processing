@@ -1,2 +1,3 @@
 .DS_Store
 realtime-batch-processing
+config/config.yaml

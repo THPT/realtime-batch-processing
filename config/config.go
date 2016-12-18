@@ -12,17 +12,17 @@ const (
 )
 
 type configuration struct {
-	Host               string `yaml:"host"`
-	Port               string `yaml:"port"`
-	RedisHost          string `yaml:"redis_host"`
-	RedisPort          string `yaml:"redis_port"`
-	RedisUsername      string `yaml:"redis_username"`
-	RedisPassword      string `yaml:"redis_password"`
-	PostgresqlHost     string `yaml:"postgresql_host"`
-	PostgresqlPort     string `yaml:"postgresql_port"`
-	PostgresqlUsername string `yaml:"postgresql_username"`
-	PostgresqlPassword string `yaml:"postgresql_password"`
-	PostgresqlDb       string `yaml:"postgresql_db"`
+	Host          string `yaml:"host"`
+	Port          string `yaml:"port"`
+	RedisHost     string `yaml:"redis_host"`
+	RedisPort     string `yaml:"redis_port"`
+	RedisUsername string `yaml:"redis_username"`
+	RedisPassword string `yaml:"redis_password"`
+	MySqlHost     string `yaml:"mysql_host"`
+	MySqlPort     string `yaml:"mysql_port"`
+	MySqlUsername string `yaml:"mysql_username"`
+	MySqlPassword string `yaml:"mysql_password"`
+	MySqlDb       string `yaml:"mysql_db"`
 }
 
 var Config configuration

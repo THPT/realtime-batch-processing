@@ -2,11 +2,9 @@ package main
 
 import (
 	"log"
-	"realtime-batch-processing/postgresql"
+	"realtime-batch-processing/infra"
 	"strconv"
 	"time"
-
-	"realtime-batch-processing/redis"
 )
 
 const (
@@ -21,11 +19,11 @@ type VideoViewCount struct {
 }
 
 func main() {
-	redis.InitRedis()
-	defer redis.CloseRedis()
+	infra.InitRedis()
+	defer infra.CloseRedis()
 
-	postgresql.Init()
-	defer postgresql.CloseDB()
+	infra.Init()
+	defer infra.CloseDB()
 
 	// Recounting all first
 	log.Println("Recounting trending video")
@@ -48,7 +46,7 @@ func main() {
 
 func recountingTrending() {
 	// Reset trending key
-	if res := redis.Redis.Del(videoTrendingKey); res != nil {
+	if res := infra.Redis.Del(videoTrendingKey); res != nil {
 		if err := res.Err(); err != nil {
 			panic(err)
 		}
@@ -82,7 +80,7 @@ func updateVideoCount() {
 	}
 	last := now.Add(6 * 60 * time.Minute)
 
-	//TODO Better to scan previous time in first restart in order not to miss any event in redis
+	//TODO Better to scan previous time in first restart in order not to miss any event in infra
 	updateVideoCountAtMin(strconv.Itoa(timer), now, 1, true)
 	updateVideoCountAtMin(strconv.Itoa(lastSixHour), last, -1, false)
 }
@@ -90,7 +88,7 @@ func updateVideoCount() {
 func updateVideoCountAtMin(min string, rawTime time.Time, minus int, saveToPg bool) {
 	videoViewKey := videoViewCountKey + "_" + min
 
-	if res := redis.Redis.HGetAll(videoViewKey); res != nil {
+	if res := infra.Redis.HGetAll(videoViewKey); res != nil {
 		mapCounting, err := res.Result()
 		if err != nil {
 			log.Println(err)
@@ -100,7 +98,7 @@ func updateVideoCountAtMin(min string, rawTime time.Time, minus int, saveToPg bo
 		//Update trending video
 		for key, val := range mapCounting {
 			count, _ := strconv.Atoi(val)
-			if res := redis.Redis.ZIncrBy(videoTrendingKey, float64(minus*count), key); res != nil {
+			if res := infra.Redis.ZIncrBy(videoTrendingKey, float64(minus*count), key); res != nil {
 				if res.Err() != nil {
 					log.Println(err)
 				}
@@ -120,7 +118,7 @@ func updateVideoCountAtMin(min string, rawTime time.Time, minus int, saveToPg bo
 					CreatedAt: rawTime,
 				}
 
-				err := postgresql.Postgres.Save(&videoViewCount).Error
+				err := infra.MySQL.Save(&videoViewCount).Error
 				if err != nil {
 					log.Println(err)
 					return
