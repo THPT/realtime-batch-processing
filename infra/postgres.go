@@ -11,7 +11,7 @@ import (
 var Postgresql *gorm.DB
 
 func Init() {
-	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8",
+	connectionString := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
 		config.Config.PostgresqlUsername,
 		config.Config.PostgresqlPassword,
 		config.Config.PostgresqlHost,
