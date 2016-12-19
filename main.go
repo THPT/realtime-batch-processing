@@ -118,7 +118,7 @@ func updateVideoCountAtMin(min string, rawTime time.Time, minus int, saveToPg bo
 					CreatedAt: rawTime,
 				}
 
-				err := infra.MySQL.Save(&videoViewCount).Error
+				err := infra.Postgresql.Save(&videoViewCount).Error
 				if err != nil {
 					log.Println(err)
 					return

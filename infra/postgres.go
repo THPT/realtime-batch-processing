@@ -4,33 +4,33 @@ import (
 	"fmt"
 	"realtime-batch-processing/config"
 
-	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
+	_ "github.com/lib/pq"
 )
 
-var MySQL *gorm.DB
+var Postgresql *gorm.DB
 
 func Init() {
 	connectionString := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8",
-		config.Config.MySqlUsername,
-		config.Config.MySqlPassword,
-		config.Config.MySqlHost,
-		config.Config.MySqlPort,
-		config.Config.MySqlDb)
+		config.Config.PostgresqlUsername,
+		config.Config.PostgresqlPassword,
+		config.Config.PostgresqlHost,
+		config.Config.PostgresqlPort,
+		config.Config.PostgresqlDb)
 	var err error
 	fmt.Println(connectionString)
-	MySQL, err = gorm.Open("mysql", connectionString)
+	Postgresql, err = gorm.Open("postgres", connectionString)
 	if err != nil {
 		panic(err)
 	}
-	err = MySQL.DB().Ping()
+	err = Postgresql.DB().Ping()
 	if err != nil {
 		panic(err)
 	}
 }
 
 func CloseDB() {
-	err := MySQL.Close()
+	err := Postgresql.Close()
 	if err != nil {
 		panic(err)
 	}
